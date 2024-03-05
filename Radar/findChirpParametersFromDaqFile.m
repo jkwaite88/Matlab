@@ -19,7 +19,7 @@ if ~isempty(iii)
     end
 end
     
-samplesToProcess = 10000000;
+samplesToProcess = 1000000;
 
 POSITIVE_FULL_SCALE = 32767;
 NEGATIVE_FULL_SCALE = -32768;
