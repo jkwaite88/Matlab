@@ -29,8 +29,12 @@ NUM_SAMPS_IN_HEADER = 3;
 %FILE_NAME = "E:\Data\Matrix\Matrix Rail Rain Data\2024_02_27_Wavetronix\Firehose1.daq";
 %FILE_NAME = "E:\Data\Matrix\Matrix Rail Rain Data\delete me\20231207SeattleTestSite1Test1.daq";
 %FILE_NAME = "E:\Data\Matrix\Matrix Rail Rain Data\delete me\Firehose1.daq";
-FILE_NAME = "E:\Data\Matrix\Matrix Rail Rain Data\delete me\20231207SeattleTestSite1Test1.daq";
-%FILE_NAME = "E:\Data\Matrix\Matrix Rail Rain Data\2024_02_27_Wavetronix\Firehose1.daq";
+%FILE_NAME = "E:\Data\Matrix\Matrix Rail Rain Data\delete me\20231207SeattleTestSite1Test1.daq";
+%FILE_NAME = "E:\Data\Matrix\Matrix Rail Rain Data\delete me\Firehose1.daq";
+%FILE_NAME = "E:\Data\Matrix\Matrix Rail Rain Data\MatrixRainFloridaData\2023-10-09_Florida_Crossing\MatrixRain_Midway_RD_9\MatrixRainMidwayRD9_extended.daq";
+FILE_NAME = "C:\users\jwaite\Wavetronix LLC\Matrix Test and Raw Data - General\Matrix Rail Rain Data\2024-11-25_FreedomBlvd\Traffic2.daq";
+%FILE_NAME = "C:\Data\2024-11-05\Test_Matrix2.daq";
+
 
 [NUM_UP_CHIRP_SAMPLES, NUM_DOWN_CHIRP_SAMPLES, NUM_ANTENNAS] = findChirpParametersFromDaqFile(FILE_NAME);
 
@@ -81,10 +85,11 @@ pulsesInserted = 0;
 data2PulseNum = 1;
 data2SampleNumber = 1;
 dataPulseNum = 1;
-begging_of_file = true;
+begining_of_file = true;
 lastFullFrameSample = 0;
 pulsesRemovedAtBeginning = 0;
 pulsesRemovedAtEnd = 0;
+numInvalidAntennaNumberPulses = 0;
 fprintFlag = 0;
 whileLoopCounter = 0;
 while dataPulseNum <= numPulses
@@ -100,7 +105,7 @@ while dataPulseNum <= numPulses
     if currentAntennaNum >= 0 && currentAntennaNum <= 15
         validAntennaNum = true;
     else
-        stophere = 1; % invalid antennaNum - debug
+        numInvalidAntennaNumberPulses = numInvalidAntennaNumberPulses +1;
     end
     if dataPulseNum < numPulses
         samplesInPulse = idxPulseStart(dataPulseNum+1) - idxPulseStart(dataPulseNum);
@@ -133,18 +138,18 @@ while dataPulseNum <= numPulses
         breakhere = 1;
     end
 
-    if pulseValid && begging_of_file && correctAntennaSequence
+    if pulseValid && begining_of_file && correctAntennaSequence
         %skip pulses at beginning of file until current antenna is 0
         if currentAntennaNum == 0
-            begging_of_file = false;
+            begining_of_file = false;
             pulsesToInsert = 0;
         end
     end
-    if begging_of_file
+    if begining_of_file
         pulsesRemovedAtBeginning = pulsesRemovedAtBeginning + 1;
     end
 
-    if pulseValid && not(begging_of_file)
+    if pulseValid && not(begining_of_file)
         if correctAntennaSequence
             %copy data
             dataSampleNumber = idxPulseStart(dataPulseNum);
@@ -188,14 +193,12 @@ while dataPulseNum <= numPulses
     else
         %invalid pulse - skip currnet pulse in data
         dataPulseNum = dataPulseNum + 1;
+        if begining_of_file
+             lastAntennaNum = currentAntennaNum;
+        end
     end
     
     whileLoopCounter = whileLoopCounter + 1;
-    %debug%%%
-    if lastAntennaNum < 0 || lastAntennaNum > 15
-        stophere = 1;
-    end
-    %debug%%%
 end
 fprintf(1,'\n');
 %throw away partial frame at end of data
@@ -218,9 +221,10 @@ if isequal(size(data), size(data2)) && (pulsesRemovedAtBeginning == 0) && (pulse
 	delete(NEW_FIXED_FILE_NAME);
 	fprintf(1,'The file is good!\nNo corruptions were found or corrections made in the file:\n%s\n',FILE_NAME);
 else
-    fprintf(1, 'To start file at begging of a frame, %d pulses removed at begging of file.\n',pulsesRemovedAtBeginning);
+    fprintf(1, 'To start file at begining of a frame, %d pulses removed at begging of file.\n',pulsesRemovedAtBeginning);
     fprintf(1, 'To finish file with complete frame, %d pulses removed at end of file.\n',pulsesRemovedAtEnd);
     fprintf(1, 'To fix currupt or missing data, %d pulses inserted with ''zero'' data.\n',pulsesInserted);
+    fprintf(1, 'The number of invalid antenna numbers, %d .\n',numInvalidAntennaNumberPulses);
 
     if false
         %append "_orig" to orignal file
