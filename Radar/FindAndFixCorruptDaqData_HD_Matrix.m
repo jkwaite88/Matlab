@@ -32,7 +32,7 @@ NUM_SAMPS_IN_HEADER = 3;
 %FILE_NAME = "E:\Data\Matrix\Matrix Rail Rain Data\delete me\20231207SeattleTestSite1Test1.daq";
 %FILE_NAME = "E:\Data\Matrix\Matrix Rail Rain Data\delete me\Firehose1.daq";
 %FILE_NAME = "E:\Data\Matrix\Matrix Rail Rain Data\MatrixRainFloridaData\2023-10-09_Florida_Crossing\MatrixRain_Midway_RD_9\MatrixRainMidwayRD9_extended.daq";
-FILE_NAME = "C:\users\jwaite\Wavetronix LLC\Matrix Test and Raw Data - General\Matrix Rail Rain Data\2024-11-25_FreedomBlvd\Traffic2.daq";
+FILE_NAME = "C:\Users\jwaite\Wavetronix LLC\Matrix Test and Raw Data - General\Matrix Rail Rain Data\2024-12-09_400South\Data4.daq";
 %FILE_NAME = "C:\Data\2024-11-05\Test_Matrix2.daq";
 
 
@@ -82,6 +82,7 @@ if lastAntennaNum < 0
     lastAntennaNum = lastAntennaNum + NUM_ANTENNAS;
 end
 pulsesInserted = 0;
+pulsesRemoved = 0;
 data2PulseNum = 1;
 data2SampleNumber = 1;
 dataPulseNum = 1;
@@ -167,27 +168,29 @@ while dataPulseNum <= numPulses
             end
             lastAntennaNum = currentAntennaNum;
         else
-            %insert pulse
-            pulsesToInsertCountDown = pulsesToInsert;
-            while pulsesToInsertCountDown > 0
-                %create data full of zeroes
-                currentAntennaNum = incrementAntenna(lastAntennaNum, NUM_ANTENNAS);
-                dataToInsert = oneFullPulseOfZeros(NUM_SAMPS_IN_CHIRP, currentAntennaNum);
-                %put data to insert into data2
-                data2(data2SampleNumber:(data2SampleNumber+NUM_SAMPLES_PER_PULSE-1)) = dataToInsert;
-                data2PulseNum = data2PulseNum + 1;
-                data2SampleNumber = data2SampleNumber + length(dataToInsert);
-                %update values
-                pulsesInserted = pulsesInserted + 1;
-                pulsesToInsertCountDown = pulsesToInsertCountDown - 1;
-                lastAntennaNum = currentAntennaNum;
-                if fprintFlag == 0
-                    fprintf(1,'Pulse Added. Total number added:%5.0d',pulsesInserted);
-                    fprintFlag = 1;
-                else
-                    fprintf(1,'\b\b\b\b\b');
-                    fprintf(1,'%5.0d',pulsesInserted);
+            insert_zero_pulses = true; % do not set to false until the code has been completed for this feature
+            if insert_zero_pulses
+                %insert zero pulses
+                pulsesToInsertCountDown = pulsesToInsert;
+                while pulsesToInsertCountDown > 0
+                    %create data full of zeroes
+                    currentAntennaNum = incrementAntenna(lastAntennaNum, NUM_ANTENNAS);
+                    dataToInsert = oneFullPulseOfZeros(NUM_SAMPS_IN_CHIRP, currentAntennaNum);
+                    %put data to insert into data2
+                    data2(data2SampleNumber:(data2SampleNumber+NUM_SAMPLES_PER_PULSE-1)) = dataToInsert;
+                    data2PulseNum = data2PulseNum + 1;
+                    data2SampleNumber = data2SampleNumber + length(dataToInsert);
+                    %update values
+                    pulsesInserted = pulsesInserted + 1;
+                    pulsesToInsertCountDown = pulsesToInsertCountDown - 1;
+                    lastAntennaNum = currentAntennaNum;
                 end
+            else
+                %do not insert pulse - do not copy pulse until it is the correct antenna number
+                %############this code has not been been tested yet
+                pulsesRemoved = pulsesRemoved + 1;
+                dataPulseNum = dataPulseNum + 1;
+                lastAntennaNum = currentAntennaNum;
             end
         end
     else
@@ -223,8 +226,10 @@ if isequal(size(data), size(data2)) && (pulsesRemovedAtBeginning == 0) && (pulse
 else
     fprintf(1, 'To start file at begining of a frame, %d pulses removed at begging of file.\n',pulsesRemovedAtBeginning);
     fprintf(1, 'To finish file with complete frame, %d pulses removed at end of file.\n',pulsesRemovedAtEnd);
-    fprintf(1, 'To fix currupt or missing data, %d pulses inserted with ''zero'' data.\n',pulsesInserted);
-    fprintf(1, 'The number of invalid antenna numbers, %d .\n',numInvalidAntennaNumberPulses);
+    fprintf(1, 'To fix currupt or missing data:\n');
+    fprintf(1, '\t%d pulses inserted with ''zero'' data.\n',pulsesInserted);
+    fprintf(1, '\t%d pulses removed.\n', pulsesRemoved);
+    fprintf(1, 'The number of invalid antenna numbers, %d.\n',numInvalidAntennaNumberPulses);
 
     if false
         %append "_orig" to orignal file

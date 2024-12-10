@@ -10,7 +10,7 @@ HOURS_PER_PULSE	= 277.7778e-9;
 %FILE_NAME = 'C:\Data\2019-11-12 - Havana and Smith Denver\HDTrain1-57mph_right.daq';
 %FILE_NAME = 'C:\Data\2019-11-12 - Havana and Smith Denver\HD-NoTrain_pointing away.daq';
 %FILE_NAME = 'C:\Data\2019-11-12 - Havana and Smith Denver\Matrix1.daq';
-FILE_NAME = 'C:\Data\MatrixRailRain\AtDeskSensorMoving1.daq';
+FILE_NAME = "C:\users\jwaite\Wavetronix LLC\Matrix Test and Raw Data - General\Matrix Rail Rain Data\2024-11-12_FreedomBlvd\Matrix_Test1_fixed.daq";
 
 [NUM_UP_CHIRP_SAMPLES, NUM_DOWN_CHIRP_SAMPLES, NUM_ANTENNAS] = findChirpParametersFromDaqFile(FILE_NAME);
 NUM_SAMPLES_PER_PERIOD = NUM_UP_CHIRP_SAMPLES + NUM_DOWN_CHIRP_SAMPLES + NUM_HEADER_SAMPLES;
@@ -110,7 +110,7 @@ end
 %%
 figure(1)
 clf
-plot(squeeze(dataMatrix(:,1,1:100:1600)))
+plot(squeeze(dataMatrix(:,1,1:100:550)))
 
 figure(2)
 clf
