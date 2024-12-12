@@ -10,7 +10,9 @@ HOURS_PER_PULSE	= 277.7778e-9;
 %FILE_NAME = 'C:\Data\2019-11-12 - Havana and Smith Denver\HDTrain1-57mph_right.daq';
 %FILE_NAME = 'C:\Data\2019-11-12 - Havana and Smith Denver\HD-NoTrain_pointing away.daq';
 %FILE_NAME = 'C:\Data\2019-11-12 - Havana and Smith Denver\Matrix1.daq';
-FILE_NAME = "C:\users\jwaite\Wavetronix LLC\Matrix Test and Raw Data - General\Matrix Rail Rain Data\2024-11-12_FreedomBlvd\Matrix_Test1_fixed.daq";
+%FILE_NAME = "C:\Data\AntennaSwitchingTest\RegularSwitching2.daq";
+%FILE_NAME = "C:\Data\AntennaSwitchingTest\RegularSwitching_fingerOnTop.daq";
+FILE_NAME = "C:\Data\AntennaSwitchingTest\Antenna7Only.daq";
 
 [NUM_UP_CHIRP_SAMPLES, NUM_DOWN_CHIRP_SAMPLES, NUM_ANTENNAS] = findChirpParametersFromDaqFile(FILE_NAME);
 NUM_SAMPLES_PER_PERIOD = NUM_UP_CHIRP_SAMPLES + NUM_DOWN_CHIRP_SAMPLES + NUM_HEADER_SAMPLES;
@@ -22,6 +24,7 @@ end
 %== Read in the data
 %[data,numRead] = fread(fid,inf,'int16');
 [data,numRead] = fread(fid,50050000,'int16');  % 15015000 is 15 s 30030000 is 30 s  45045000 is 45 s 50050000 is 50s
+fclose(fid)
 %data = data/(2^15);
 numReshapedChirps = floor(floor(size(data,1)/NUM_SAMPLES_PER_PERIOD)/NUM_ANTENNAS)*NUM_ANTENNAS; %limit to even number of full chirps
 numReshapedSamples = numReshapedChirps * NUM_SAMPLES_PER_PERIOD;
@@ -53,64 +56,72 @@ endBin = 60;
 maxFftBin = maxFftBin + startBin - 1;
 
 
-%% calculate speed
-pulseStart = 1;
-%pulseStop = 50000;
-pulseStop = size(dataMatrix,3)
-speedFftSize = 512;
-speedCalcPulses = 256;
-idxs = pulseStart:speedCalcPulses:(pulseStop-speedFftSize);
-speedCor = zeros(speedFftSize, length(idxs));
-a=0;  
-corSecondPeakThresh = .90;
-for i = idxs
-    a = a+1;
-    speedCor(:,a)= speedCorrelation(DataMatrix(maxFftBin, 1, i:(i+speedFftSize-1)), DataMatrix(maxFftBin, 2, i:(i+speedFftSize-1)),0);
-    %find largest two peaks
-    p1 = 0;
-    p1idx = 0;
-    p2 = 0;
-    p2idx = 0;
-    for j = 2:(speedFftSize-1)
-        if (abs(speedCor(j-1,a)) < abs(speedCor(j,a))) && (abs(speedCor(j,a)) > abs(speedCor(j+1,a)))
-            %peak found
-            if abs(speedCor(j,a)) > p1
-                p2 = p1;
-                p2idx = p1idx;
-                p1 = abs(speedCor(j,a));
-                p1idx = j;
-            elseif abs(speedCor(j,a)) > p2
-                p2 = abs(speedCor(j,a));
-                p2idx = j;
-            end
-        end
-    end
-    corMaxMy1(a) = p1;
-    corMaxMy2(a) = p2;
-    if p2 < (corSecondPeakThresh*p1)
-        corMaxIdxMy(a) = p1idx;
-    else
-        corMaxIdxMy(a) = nan;
-    end
-end
-
-[corMax, corMaxIdx] = max(abs(speedCor),[],1);
-DIST_BETWEEN_ANTS =(83.32855682e-6); %miles
-%hoursPerPrimaryPulse = 555.556e-9; %hours
-hoursPerPrimaryPulse = (279e-6)*2/3600; %hours
-for i = 1:length(corMaxIdxMy)
-    if corMaxIdxMy(i) < speedFftSize/2
-        speed(i) = DIST_BETWEEN_ANTS / ((corMaxIdxMy(i) +0.5) *hoursPerPrimaryPulse);
-    else
-        speed(i) = DIST_BETWEEN_ANTS / ((corMaxIdxMy(i)-speedFftSize +0.5) *hoursPerPrimaryPulse);
-    end
-end
+% %% calculate speed
+% pulseStart = 1;
+% %pulseStop = 50000;
+% pulseStop = size(dataMatrix,3)
+% speedFftSize = 512;
+% speedCalcPulses = 256;
+% idxs = pulseStart:speedCalcPulses:(pulseStop-speedFftSize);
+% speedCor = zeros(speedFftSize, length(idxs));
+% a=0;  
+% corSecondPeakThresh = .90;
+% for i = idxs
+%     a = a+1;
+%     speedCor(:,a)= speedCorrelation(DataMatrix(maxFftBin, 1, i:(i+speedFftSize-1)), DataMatrix(maxFftBin, 2, i:(i+speedFftSize-1)),0);
+%     %find largest two peaks
+%     p1 = 0;
+%     p1idx = 0;
+%     p2 = 0;
+%     p2idx = 0;
+%     for j = 2:(speedFftSize-1)
+%         if (abs(speedCor(j-1,a)) < abs(speedCor(j,a))) && (abs(speedCor(j,a)) > abs(speedCor(j+1,a)))
+%             %peak found
+%             if abs(speedCor(j,a)) > p1
+%                 p2 = p1;
+%                 p2idx = p1idx;
+%                 p1 = abs(speedCor(j,a));
+%                 p1idx = j;
+%             elseif abs(speedCor(j,a)) > p2
+%                 p2 = abs(speedCor(j,a));
+%                 p2idx = j;
+%             end
+%         end
+%     end
+%     corMaxMy1(a) = p1;
+%     corMaxMy2(a) = p2;
+%     if p2 < (corSecondPeakThresh*p1)
+%         corMaxIdxMy(a) = p1idx;
+%     else
+%         corMaxIdxMy(a) = nan;
+%     end
+% end
+% 
+% [corMax, corMaxIdx] = max(abs(speedCor),[],1);
+% DIST_BETWEEN_ANTS =(83.32855682e-6); %miles
+% %hoursPerPrimaryPulse = 555.556e-9; %hours
+% hoursPerPrimaryPulse = (279e-6)*2/3600; %hours
+% for i = 1:length(corMaxIdxMy)
+%     if corMaxIdxMy(i) < speedFftSize/2
+%         speed(i) = DIST_BETWEEN_ANTS / ((corMaxIdxMy(i) +0.5) *hoursPerPrimaryPulse);
+%     else
+%         speed(i) = DIST_BETWEEN_ANTS / ((corMaxIdxMy(i)-speedFftSize +0.5) *hoursPerPrimaryPulse);
+%     end
+% end
 
 
 %%
 figure(1)
-clf
-plot(squeeze(dataMatrix(:,1,1:100:550)))
+clf; hold on
+% for i = 1:16
+%     plot(squeeze(dataMatrix(:,i,1:100:end))+i*300)
+% end
+
+plot(squeeze(dataMatrix(:,1,1:100:550))+0)
+% plot(squeeze(dataMatrix(:,8,1:100:550))+400)
+% plot(squeeze(dataMatrix(:,16,1:100:550))+800)
+
+
 
 figure(2)
 clf
