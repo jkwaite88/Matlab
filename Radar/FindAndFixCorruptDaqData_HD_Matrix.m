@@ -32,7 +32,8 @@ NUM_SAMPS_IN_HEADER = 3;
 %FILE_NAME = "E:\Data\Matrix\Matrix Rail Rain Data\delete me\20231207SeattleTestSite1Test1.daq";
 %FILE_NAME = "E:\Data\Matrix\Matrix Rail Rain Data\delete me\Firehose1.daq";
 %FILE_NAME = "E:\Data\Matrix\Matrix Rail Rain Data\MatrixRainFloridaData\2023-10-09_Florida_Crossing\MatrixRain_Midway_RD_9\MatrixRainMidwayRD9_extended.daq";
-FILE_NAME = "C:\Users\jwaite\Wavetronix LLC\Matrix Test and Raw Data - General\Matrix Rail Rain Data\2024-12-09_400South\Data4.daq";
+%FILE_NAME = "C:\Data\AntennaSwitchingTest\Antenna7Only.daq";
+FILE_NAME = "C:\Data\AntennaSwitchingTest\RegularSwitching.daq";
 %FILE_NAME = "C:\Data\2024-11-05\Test_Matrix2.daq";
 
 
@@ -63,7 +64,7 @@ totalNumSamples = (endOfFilePointer/2);
 fseek(fid_origFile, 0, 'bof');
 
 
-[data,numRead] = fread(fid_origFile,inf,'int16');
+[data,numRead] = fread(fid_origFile,inf,'int16=>int16');
 fclose(fid_origFile);
 
 %%
@@ -74,7 +75,7 @@ samplesInPulse = idxPulseStart(2:end) - idxPulseStart(1:(end-1));
 pulseNum_IncorrectNumberOfSamples = find(samplesInPulse ~= NUM_SAMPLES_PER_PULSE);
 
 %initialize variable;
-data2 = zeros(size(data));
+data2 = zeros(size(data), 'int16');
 numPulses = length(idxPulseStart);
 numPulsesToFix = length(pulseNum_IncorrectNumberOfSamples);
 lastAntennaNum = data(idxPulseStart(1)+(NUM_SAMPS_IN_HEADER-1)) - 1;

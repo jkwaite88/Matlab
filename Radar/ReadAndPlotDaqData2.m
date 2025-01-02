@@ -12,7 +12,10 @@ HOURS_PER_PULSE	= 277.7778e-9;
 %FILE_NAME = 'C:\Data\2019-11-12 - Havana and Smith Denver\Matrix1.daq';
 %FILE_NAME = "C:\Data\AntennaSwitchingTest\RegularSwitching2.daq";
 %FILE_NAME = "C:\Data\AntennaSwitchingTest\RegularSwitching_fingerOnTop.daq";
-FILE_NAME = "C:\Data\AntennaSwitchingTest\Antenna7Only.daq";
+% FILE_NAME = "C:\Data\MatrixBrreathingRate\Zubair_3m._2daq";
+%FILE_NAME = "C:\Data\AntennaSwitchingTest\AllAtnennas1.daq";
+%FILE_NAME = "E:\RadarData\Matrix\Matrix Rail Rain Data\MatrixRainSeattleData\Seattle_12072023\Dataset 2\20231207SeattleTestSite2Test1_fixed.daq";
+FILE_NAME = "E:\RadarData\Matrix\Matrix Rail Rain Data\MatrixRainSeattleData\Seattle_12072023\Dataset 2\20231207SeattleTestSite2Test1_fixed_extended.daq";
 
 [NUM_UP_CHIRP_SAMPLES, NUM_DOWN_CHIRP_SAMPLES, NUM_ANTENNAS] = findChirpParametersFromDaqFile(FILE_NAME);
 NUM_SAMPLES_PER_PERIOD = NUM_UP_CHIRP_SAMPLES + NUM_DOWN_CHIRP_SAMPLES + NUM_HEADER_SAMPLES;
@@ -23,19 +26,22 @@ end
 
 %== Read in the data
 %[data,numRead] = fread(fid,inf,'int16');
-[data,numRead] = fread(fid,50050000,'int16');  % 15015000 is 15 s 30030000 is 30 s  45045000 is 45 s 50050000 is 50s
-fclose(fid)
+[data,numRead] = fread(fid, 50050000,'int16');  % 15015000 is 15 s 30030000 is 30 s  45045000 is 45 s 50050000 is 50s
+fclose(fid);
 %data = data/(2^15);
-numReshapedChirps = floor(floor(size(data,1)/NUM_SAMPLES_PER_PERIOD)/NUM_ANTENNAS)*NUM_ANTENNAS; %limit to even number of full chirps
-numReshapedSamples = numReshapedChirps * NUM_SAMPLES_PER_PERIOD;
-temp = reshape(data(1:numReshapedSamples), NUM_SAMPLES_PER_PERIOD, []);
-dataMatrix = reshape(temp((NUM_HEADER_SAMPLES+1):(NUM_UP_CHIRP_SAMPLES+NUM_HEADER_SAMPLES),1:end), NUM_UP_CHIRP_SAMPLES, NUM_ANTENNAS, numReshapedChirps/NUM_ANTENNAS );
-numFrames = size(dataMatrix,3);
+numChirps = floor(size(data,1)/NUM_SAMPLES_PER_PERIOD);
+numFrames = floor(numChirps/NUM_ANTENNAS);
+numSamplesInFrames = numFrames*NUM_ANTENNAS*NUM_SAMPLES_PER_PERIOD;
+temp = reshape(data(1:numSamplesInFrames), NUM_SAMPLES_PER_PERIOD, []);
+dataMatrix = reshape(temp((NUM_HEADER_SAMPLES+1):(NUM_UP_CHIRP_SAMPLES+NUM_HEADER_SAMPLES),:), NUM_UP_CHIRP_SAMPLES, NUM_ANTENNAS, numFrames );
+clear temp
 
 chebWinSideLobes = 80;
-WindowMatrix = repmat(myDolphCheb(NUM_UP_CHIRP_SAMPLES,chebWinSideLobes), 1, NUM_ANTENNAS, numFrames);
-DataMatrix = fft(WindowMatrix.*dataMatrix,FFT_SIZE);
+chebWindow = myDolphCheb(NUM_UP_CHIRP_SAMPLES,chebWinSideLobes);
+DataMatrix = fft(chebWindow .* dataMatrix);
 DataMatrix = DataMatrix(1:(FFT_SIZE/2+1),:,:);
+
+%%
 
 if NUM_ANTENNAS == 2
     ant1 = 1;
@@ -43,19 +49,26 @@ if NUM_ANTENNAS == 2
 elseif NUM_ANTENNAS == 16
     ant1 = 7;
     ant2 = 8;
+elseif NUM_ANTENNAS == 1
+    ant1 = 1;
+    ant2 = 1;
 else
+
     ant1 = 1;
     ant2 = 2;
 end
 
 %find index for train
-maxFft = max(abs(squeeze(DataMatrix(:,ant1,:))),[],2);
+%maxFft = max(abs(squeeze(DataMatrix(:,ant1,:))),[],2);
+maxFft = max(abs(squeeze(DataMatrix)),[],[2 3]);
 startBin = 5;
 endBin = 60;
 [mx, maxFftBin] = max(maxFft(startBin:endBin));
 maxFftBin = maxFftBin + startBin - 1;
 
-
+maxAnt = max(abs(squeeze(DataMatrix(maxFftBin,:,:))), [], 2);
+[mxAnt, maxAntIdx] = max(maxAnt);
+%%
 % %% calculate speed
 % pulseStart = 1;
 % %pulseStop = 50000;
@@ -111,76 +124,105 @@ maxFftBin = maxFftBin + startBin - 1;
 
 
 %%
+
+range1 = 25;
+
 figure(1)
 clf; hold on
-% for i = 1:16
-%     plot(squeeze(dataMatrix(:,i,1:100:end))+i*300)
-% end
-
-plot(squeeze(dataMatrix(:,1,1:100:550))+0)
-% plot(squeeze(dataMatrix(:,8,1:100:550))+400)
-% plot(squeeze(dataMatrix(:,16,1:100:550))+800)
+%plot(20*log10(abs(squeeze(DataMatrix(maxFftBin,maxAntIdx,:)))))
+plot(20*log10(abs(squeeze(DataMatrix(22,8,:)))))
 
 
+figure(2);
+clf;hold on
+plot(20*log10(abs(squeeze(DataMatrix(1,ant1,:)))))
+plot(20*log10(abs(squeeze(DataMatrix(2,ant1,:)))))
+plot(20*log10(abs(squeeze(DataMatrix(3,ant1,:)))))
+plot(20*log10(abs(squeeze(DataMatrix(4,ant1,:)))))
+plot(20*log10(abs(squeeze(DataMatrix(5,ant1,:)))))
 
-figure(2)
-clf
-plot(20*log10(maxFft))
 
 
+%%
+%concatenate data at beginning or end
+dataToConcatenate = dataMatrix(:,:,1:34000);
+dataMatrix2 = cat(3, dataToConcatenate, dataMatrix);
+
+clear dataMatrix
+chebWinSideLobes = 80;
+chebWindow = myDolphCheb(NUM_UP_CHIRP_SAMPLES,chebWinSideLobes);
+DataMatrix2 = fft(chebWindow .* dataMatrix2);
+DataMatrix2 = DataMatrix2(1:(FFT_SIZE/2+1),:,:);
 figure(3)
-clf
-hold on
-plot(pulseStart:pulseStop, 20*log10(abs(squeeze(DataMatrix(maxFftBin,ant1,pulseStart:pulseStop)))), 'b')
-plot(pulseStart:pulseStop, 20*log10(abs(squeeze(DataMatrix(maxFftBin,ant2,pulseStart:pulseStop)))),'g')
-title(sprintf('Magnitude Response - Bin %d', maxFftBin))
-xlabel('Pulses')
-legend('Ch 1', 'Ch 2')
+clf; hold on
+%plot(20*log10(abs(squeeze(DataMatrix(maxFftBin,maxAntIdx,:)))))
+plot(20*log10(abs(squeeze(DataMatrix2(22,8,:)))))
+%%
 
-figure(4)
-clf
-hold on
-bin = 10;
-plot(pulseStart:pulseStop, 20*log10(abs(squeeze(DataMatrix(bin,ant1,pulseStart:pulseStop)))), 'b')
-plot(pulseStart:pulseStop, 20*log10(abs(squeeze(DataMatrix(bin,ant2,pulseStart:pulseStop)))),'g')
-title(sprintf('Magnitude Response - Bin %d', bin))
-xlabel('Pulses')
-legend('Ch 1', 'Ch 2')
+% Example matrices
+A = rand(2, 3, 4); % 2x3x4 matrix
+B = rand(2, 3, 5); % 2x3x5 matrix
 
+% Concatenate along the first dimension (depth)
+C = cat(3, A, B);
 
+% Display size of the result to verify
+disp(size(C));
+%%
 
-
-
-
-figure(5)
-clf
-%plot(corMaxIdx,'b')
-hold on
-plot(corMaxIdxMy,'g')
-
-figure(6)
-clf
-hold on
-plot(corMaxMy1, 'b')
-plot(corMaxMy2, 'g')
-plot(corMaxMy1.*corSecondPeakThresh, 'c')
-
-temp = find(isnan(corMaxIdxMy));
-%plot(temp, (corMaxMy1(temp)+corMaxMy2(temp))/2,'r.')
-plot(temp, corMaxMy2(temp),'r.')
-
-figure(7)
-plot(speed)
-title('Speed')
-ylabel('MPH')
-axis([-inf inf -30 30])
-
-figure(8);clf;
-plot(abs(speedCor(:,5)))
-
-figure(9);clf; hold on;
-m = max(max(abs(DataMatrix(10:end,ant1,:))));
-imagesc(20*log10(squeeze(abs(DataMatrix(:,ant1,:)))))
-caxis([20*log10(m)-60 20*log10(m)])
-colorbar
-title(sprintf('Magntitude - Antenna %d', ant1))
+% figure(3)
+% clf
+% hold on
+% plot(pulseStart:pulseStop, 20*log10(abs(squeeze(DataMatrix(maxFftBin,ant1,pulseStart:pulseStop)))), 'b')
+% plot(pulseStart:pulseStop, 20*log10(abs(squeeze(DataMatrix(maxFftBin,ant2,pulseStart:pulseStop)))),'g')
+% title(sprintf('Magnitude Response - Bin %d', maxFftBin))
+% xlabel('Pulses')
+% legend('Ch 1', 'Ch 2')
+% 
+% figure(4)
+% clf
+% hold on
+% bin = 10;
+% plot(pulseStart:pulseStop, 20*log10(abs(squeeze(DataMatrix(bin,ant1,pulseStart:pulseStop)))), 'b')
+% plot(pulseStart:pulseStop, 20*log10(abs(squeeze(DataMatrix(bin,ant2,pulseStart:pulseStop)))),'g')
+% title(sprintf('Magnitude Response - Bin %d', bin))
+% xlabel('Pulses')
+% legend('Ch 1', 'Ch 2')
+% 
+% 
+% 
+% 
+% 
+% 
+% figure(5)
+% clf
+% %plot(corMaxIdx,'b')
+% hold on
+% plot(corMaxIdxMy,'g')
+% 
+% figure(6)
+% clf
+% hold on
+% plot(corMaxMy1, 'b')
+% plot(corMaxMy2, 'g')
+% plot(corMaxMy1.*corSecondPeakThresh, 'c')
+% 
+% temp = find(isnan(corMaxIdxMy));
+% %plot(temp, (corMaxMy1(temp)+corMaxMy2(temp))/2,'r.')
+% plot(temp, corMaxMy2(temp),'r.')
+% 
+% figure(7)
+% plot(speed)
+% title('Speed')
+% ylabel('MPH')
+% axis([-inf inf -30 30])
+% 
+% figure(8);clf;
+% plot(abs(speedCor(:,5)))
+% 
+% figure(9);clf; hold on;
+% m = max(max(abs(DataMatrix(10:end,ant1,:))));
+% imagesc(20*log10(squeeze(abs(DataMatrix(:,ant1,:)))))
+% caxis([20*log10(m)-60 20*log10(m)])
+% colorbar
+% title(sprintf('Magntitude - Antenna %d', ant1))

@@ -21,9 +21,9 @@ end
     
 samplesToProcess = 1000000;
 
-POSITIVE_FULL_SCALE = 32767;
-NEGATIVE_FULL_SCALE = -32768;
-NUM_HEADER_SAMPLES = 3;
+POSITIVE_FULL_SCALE = int16(32767);
+NEGATIVE_FULL_SCALE = int16(-32768);
+NUM_HEADER_SAMPLES = double(3);
 
 fid = fopen(daqFileaName,'r');
 if (fid == -1)
@@ -36,7 +36,7 @@ fseek(fid, 0,"bof");
 if samplesInFile < samplesToProcess
     samplesToProcess = samplesInFile;
 end
-[data, numRead] = fread(fid, samplesToProcess, 'int16');
+[data, numRead] = fread(fid, samplesToProcess, 'int16=>int16');
 fclose(fid);
 
 consecutivePulsesSameLengthToFind = 2; %should be 2 or greater 
@@ -44,6 +44,7 @@ pulsesSameLength = 0;
 chirpStart  = zeros(1,consecutivePulsesSameLengthToFind+1); %find one more start the number of pulses
 chirpLength = zeros(1,consecutivePulsesSameLengthToFind);
 n = 1;
+sameLength = 0;
 for sample = 1:samplesToProcess
    if( (data(sample) == POSITIVE_FULL_SCALE)...
         &&...
@@ -87,7 +88,7 @@ if sameLength
     mx=max(data(indxmx(indxHalfgood(indxGood))+2));
     %mn = min(data(3:NUM_SAMPLES_PER_PRF:end));
     %mx = max(data(3:NUM_SAMPLES_PER_PRF:end));
-    NUM_ANTENNAS = mx - mn + 1;
+    NUM_ANTENNAS = double(mx - mn + 1);
     if NUM_ANTENNAS == 2
         HD_file = 1;
     end
@@ -116,7 +117,7 @@ else
     NUM_UP_CHIRP_SAMPLES = 0;
     NUM_DOWN_CHIRP_SAMPLES = 0;
     NUM_ANTENNAS = 0;
-    assert(1, 'Valid pulse not found');
+    error('Valid pulse not found');
 end
 
 
