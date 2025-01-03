@@ -7,7 +7,7 @@
 %Out of sequence - for Valid data, antenna number is out of propper order
 
 %Script: check a pulse for validity. If valid, check sequence. If out of order, add pulses contiaining zero data. If in order, copy pulse
-
+clear all
 tic;
 SAMPLE_RATE = 1e6;
 POSITIVE_FULL_SCALE = 32767;
@@ -33,8 +33,9 @@ NUM_SAMPS_IN_HEADER = 3;
 %FILE_NAME = "E:\Data\Matrix\Matrix Rail Rain Data\delete me\Firehose1.daq";
 %FILE_NAME = "E:\Data\Matrix\Matrix Rail Rain Data\MatrixRainFloridaData\2023-10-09_Florida_Crossing\MatrixRain_Midway_RD_9\MatrixRainMidwayRD9_extended.daq";
 %FILE_NAME = "C:\Data\AntennaSwitchingTest\Antenna7Only.daq";
-FILE_NAME = "C:\Data\AntennaSwitchingTest\RegularSwitching.daq";
-%FILE_NAME = "C:\Data\2024-11-05\Test_Matrix2.daq";
+%FILE_NAME = "C:\Data\AntennaSwitchingTest\RegularSwitching.daq";
+%FILE_NAME = "E:\RadarData\Matrix\Matrix Rail Rain Data\MatrixRainSeattleData\Seattle_12072023\Dataset 2\20231207SeattleTestSite2Test1_fixed_extended.daq";
+FILE_NAME = "E:\RadarData\Matrix\Matrix Rail Rain Data\MatrixRainSeattleData\Seattle_12072023\Dataset 2\20231207SeattleTestSite2Test1_fixed.daq";
 
 
 [NUM_UP_CHIRP_SAMPLES, NUM_DOWN_CHIRP_SAMPLES, NUM_ANTENNAS] = findChirpParametersFromDaqFile(FILE_NAME);
@@ -52,7 +53,6 @@ if (fid_origFile == -1)
    error('Unable to open file');
 end
 
-corruptCount = 0;
 removedLastOrFirstPulseBecauseOfAntennaNumber = false;
 NUM_SAMPS_IN_CHIRP = NUM_UP_CHIRP_SAMPLES + NUM_DOWN_CHIRP_SAMPLES;
 NUM_SAMPLES_PER_PULSE = NUM_SAMPS_IN_CHIRP + NUM_SAMPS_IN_HEADER;
@@ -78,159 +78,141 @@ pulseNum_IncorrectNumberOfSamples = find(samplesInPulse ~= NUM_SAMPLES_PER_PULSE
 data2 = zeros(size(data), 'int16');
 numPulses = length(idxPulseStart);
 numPulsesToFix = length(pulseNum_IncorrectNumberOfSamples);
-lastAntennaNum = data(idxPulseStart(1)+(NUM_SAMPS_IN_HEADER-1)) - 1;
-if lastAntennaNum < 0
-    lastAntennaNum = lastAntennaNum + NUM_ANTENNAS;
+lastValidAntennaNum = data(idxPulseStart(1)+(NUM_SAMPS_IN_HEADER-1)) - 1;
+if lastValidAntennaNum < 0
+    lastValidAntennaNum = lastValidAntennaNum + NUM_ANTENNAS;
 end
 pulsesInserted = 0;
 pulsesRemoved = 0;
-data2PulseNum = 1;
-data2SampleNumber = 1;
-dataPulseNum = 1;
+data2_PulseNum = 0;
+data2_StartSampleIdx = 1;
+data_PulseNum = 1;
 begining_of_file = true;
-lastFullFrameSample = 0;
+lastFullFrameSampleIdx = 0;
 pulsesRemovedAtBeginning = 0;
 pulsesRemovedAtEnd = 0;
-numInvalidAntennaNumberPulses = 0;
+numInvalidAntennaNumber = 0;
+number_of_pulses_with_invalid_number_of_samples = 0;
+number_of_invalid_antenna_sequence = 0;
 fprintFlag = 0;
 whileLoopCounter = 0;
-while dataPulseNum <= numPulses
+while data_PulseNum <= numPulses
     if whileLoopCounter > (10*numPulses)
         error('In infinite loop.')
     end
     
-    pulseValid = false;
-    correctAntennaSequence = false;
     validAntennaNum = false;
-    % check for pulse validity
-    currentAntennaNum = data(idxPulseStart(dataPulseNum)+(NUM_SAMPS_IN_HEADER-1));
+    correctNumerOfSamples = false;
+    correctAntennaSequence = false;
+    pulseValid = false;
+    % check for valid antenna number
+    currentAntennaNum = data(idxPulseStart(data_PulseNum)+(NUM_SAMPS_IN_HEADER-1));
     if currentAntennaNum >= 0 && currentAntennaNum <= 15
         validAntennaNum = true;
     else
-        numInvalidAntennaNumberPulses = numInvalidAntennaNumberPulses +1;
+        numInvalidAntennaNumber = numInvalidAntennaNumber +1;
     end
-    if dataPulseNum < numPulses
-        samplesInPulse = idxPulseStart(dataPulseNum+1) - idxPulseStart(dataPulseNum);
+    
+    %check for correct number of samples in pulse
+    if data_PulseNum < numPulses
+        samplesInPulse = idxPulseStart(data_PulseNum+1) - idxPulseStart(data_PulseNum);
     else
-        samplesInPulse = length(data) -idxPulseStart(dataPulseNum) + 1;
+        samplesInPulse = length(data) -idxPulseStart(data_PulseNum) + 1;
     end
-    if (samplesInPulse == NUM_SAMPLES_PER_PULSE) && validAntennaNum
-        pulseValid = true;
-        
-        %Check pulse sequence
-        antennaSequenceDifference = currentAntennaNum - lastAntennaNum;
-        if antennaSequenceDifference < 0
-            antennaSequenceDifference = antennaSequenceDifference + NUM_ANTENNAS;
-        end
-        if antennaSequenceDifference == 1
-            correctAntennaSequence = true;
-            pulsesToInsert = 0;
+    if (samplesInPulse == NUM_SAMPLES_PER_PULSE)
+        correctNumerOfSamples = true;
+    else
+        number_of_pulses_with_invalid_number_of_samples = number_of_pulses_with_invalid_number_of_samples + 1;
+    end
+    
+    %Check antenna sequence
+    antennaSequenceDifference = currentAntennaNum - lastValidAntennaNum;
+    if antennaSequenceDifference < 0
+        antennaSequenceDifference = antennaSequenceDifference + NUM_ANTENNAS;
+    end
+    if antennaSequenceDifference == 1
+        correctAntennaSequence = true;
+    else
+        number_of_invalid_antenna_sequence = number_of_invalid_antenna_sequence + 1;
+    end
+
+    % Begining of file. Do not copy until the first antenna 0 pulse
+    if begining_of_file
+        %skip pulses at beginning of file until current antenna is 0
+        if currentAntennaNum == 0
+            begining_of_file = false;
         else
-            %
-            pulsesToInsert = antennaSequenceDifference - 1;
-            if pulsesToInsert < 0
-                pulsesToInsert = pulsesToInsert + NUM_ANTENNAS;
-            end
-            if pulsesToInsert >= NUM_ANTENNAS || pulsesToInsert < 0
-                error('Invalid pulsesToInsert variable value')
-            end
+            pulsesRemovedAtBeginning = pulsesRemovedAtBeginning + 1;
         end
+    end
+    
+    %Determine if pulse is valid
+    if correctNumerOfSamples && validAntennaNum && correctAntennaSequence && not(begining_of_file)
+        pulseValid = true;
     else
         %pulse not valid
         breakhere = 1;
     end
 
-    if pulseValid && begining_of_file && correctAntennaSequence
-        %skip pulses at beginning of file until current antenna is 0
-        if currentAntennaNum == 0
-            begining_of_file = false;
-            pulsesToInsert = 0;
+    % Copy valid pulse data
+    if pulseValid
+        %copy data
+        start_dataSampleNumber = idxPulseStart(data_PulseNum);
+        end_dataSampleIdx = (start_dataSampleNumber+NUM_SAMPLES_PER_PULSE-1);
+        dataToInsert = data(start_dataSampleNumber:end_dataSampleIdx);
+        %put data to insert into data2
+        data2_endSampleIdx = (data2_StartSampleIdx+NUM_SAMPLES_PER_PULSE-1);
+        data2(data2_StartSampleIdx:data2_endSampleIdx) = dataToInsert;
+        
+        %update data2 values
+        data2_PulseNum = data2_PulseNum + 1;
+        data2_StartSampleIdx = data2_endSampleIdx + 1;
+        if currentAntennaNum == (NUM_ANTENNAS -1)
+            %record last sample of last full frame 
+            lastFullFrameSampleIdx = data2_endSampleIdx;
         end
-    end
-    if begining_of_file
-        pulsesRemovedAtBeginning = pulsesRemovedAtBeginning + 1;
-    end
-
-    if pulseValid && not(begining_of_file)
-        if correctAntennaSequence
-            %copy data
-            dataSampleNumber = idxPulseStart(dataPulseNum);
-            dataToInsert = data(dataSampleNumber:(dataSampleNumber+NUM_SAMPLES_PER_PULSE-1));
-            %put data to insert into data2
-            endLastSampleIdx = (data2SampleNumber+NUM_SAMPLES_PER_PULSE-1);
-            data2(data2SampleNumber:endLastSampleIdx) = dataToInsert;
-            data2PulseNum = data2PulseNum + 1;
-            data2SampleNumber = data2SampleNumber + length(dataToInsert);
-            %update values
-            dataPulseNum = dataPulseNum + 1;
-            if currentAntennaNum == (NUM_ANTENNAS -1)
-                %record last sample of last full frame 
-                lastFullFrameSample = endLastSampleIdx;
-            end
-            lastAntennaNum = currentAntennaNum;
-        else
-            insert_zero_pulses = true; % do not set to false until the code has been completed for this feature
-            if insert_zero_pulses
-                %insert zero pulses
-                pulsesToInsertCountDown = pulsesToInsert;
-                while pulsesToInsertCountDown > 0
-                    %create data full of zeroes
-                    currentAntennaNum = incrementAntenna(lastAntennaNum, NUM_ANTENNAS);
-                    dataToInsert = oneFullPulseOfZeros(NUM_SAMPS_IN_CHIRP, currentAntennaNum);
-                    %put data to insert into data2
-                    data2(data2SampleNumber:(data2SampleNumber+NUM_SAMPLES_PER_PULSE-1)) = dataToInsert;
-                    data2PulseNum = data2PulseNum + 1;
-                    data2SampleNumber = data2SampleNumber + length(dataToInsert);
-                    %update values
-                    pulsesInserted = pulsesInserted + 1;
-                    pulsesToInsertCountDown = pulsesToInsertCountDown - 1;
-                    lastAntennaNum = currentAntennaNum;
-                end
-            else
-                %do not insert pulse - do not copy pulse until it is the correct antenna number
-                %############this code has not been been tested yet
-                pulsesRemoved = pulsesRemoved + 1;
-                dataPulseNum = dataPulseNum + 1;
-                lastAntennaNum = currentAntennaNum;
-            end
-        end
+        lastValidAntennaNum = currentAntennaNum;
     else
-        %invalid pulse - skip currnet pulse in data
-        dataPulseNum = dataPulseNum + 1;
-        if begining_of_file
-             lastAntennaNum = currentAntennaNum;
+        %invalid pulse - do not copy - skip currnet pulse in data
+        if begining_of_file && correctNumerOfSamples && validAntennaNum
+             lastValidAntennaNum = currentAntennaNum;
         end
     end
-    
+    data_PulseNum = data_PulseNum + 1;
     whileLoopCounter = whileLoopCounter + 1;
 end
+
 fprintf(1,'\n');
 %throw away partial frame at end of data
-if data2SampleNumber ~= lastFullFrameSample
-    data2 = data2(1:lastFullFrameSample);
-    pulsesRemovedAtEnd = floor((data2SampleNumber - lastFullFrameSample)/NUM_SAMPS_IN_CHIRP);
+if data2_endSampleIdx ~= lastFullFrameSampleIdx
+    data2 = data2(1:lastFullFrameSampleIdx);
+    pulsesRemovedAtEnd = floor((data2_endSampleIdx - lastFullFrameSampleIdx)/NUM_SAMPLES_PER_PULSE);
 end
 
 
 %%
-fid_fixedFile = fopen(NEW_FIXED_FILE_NAME,'w');
-if (fid_fixedFile == -1)
-   error('Unable to open file');
-end
-fwrite(fid_fixedFile, data2, 'int16');
-fclose(fid_fixedFile);
 
 if isequal(size(data), size(data2)) && (pulsesRemovedAtBeginning == 0) && (pulsesRemovedAtEnd == 0) && (pulsesInserted == 0)
-    %no changes made to file
-	delete(NEW_FIXED_FILE_NAME);
+    %file good - no changes made
 	fprintf(1,'The file is good!\nNo corruptions were found or corrections made in the file:\n%s\n',FILE_NAME);
 else
-    fprintf(1, 'To start file at begining of a frame, %d pulses removed at begging of file.\n',pulsesRemovedAtBeginning);
-    fprintf(1, 'To finish file with complete frame, %d pulses removed at end of file.\n',pulsesRemovedAtEnd);
+    %file fixed - write file
+    fprintf(1, 'To start file with a full frame, %d pulses removed at the begging.\n',pulsesRemovedAtBeginning);
+    fprintf(1, 'To finish file with complete frame, %d pulses removed at the end.\n',pulsesRemovedAtEnd);
     fprintf(1, 'To fix currupt or missing data:\n');
-    fprintf(1, '\t%d pulses inserted with ''zero'' data.\n',pulsesInserted);
-    fprintf(1, '\t%d pulses removed.\n', pulsesRemoved);
-    fprintf(1, 'The number of invalid antenna numbers, %d.\n',numInvalidAntennaNumberPulses);
+    
+    fprintf(1, '\t%d pulses with invalid antenna number.\n',numInvalidAntennaNumber);
+    fprintf(1, '\t%d pulses with invalid number of samples.\n',number_of_pulses_with_invalid_number_of_samples);
+    fprintf(1, '\t%d pulses with invalid antenna sequence.\n', number_of_invalid_antenna_sequence);
+    fprintf(1, 'Writing correceted file.\n');
+
+    %file fixed - write file
+    fid_fixedFile = fopen(NEW_FIXED_FILE_NAME,'w');
+    if (fid_fixedFile == -1)
+       error('Unable to open file');
+    end
+    fwrite(fid_fixedFile, data2, 'int16');
+    fclose(fid_fixedFile);
 
     if false
         %append "_orig" to orignal file
@@ -239,12 +221,10 @@ else
         movefile(NEW_FIXED_FILE_NAME,FILE_NAME);
 	    fprintf(1,'The corrected file was SAVED as:\n%s\n',FILE_NAME);
 	    fprintf(1,'The original file was SAVED as:\n%s\n',NEW_ORIG_FILE_NAME);
-	    fprintf(1,'Total number of times corrupt data found: %d\n', corruptCount);
     else
         %apppend "_fixed to fixed file
         fprintf(1,'The corrected file was SAVED as:\n%s\n',NEW_FIXED_FILE_NAME);
 	    fprintf(1,'The original file is unchanged:\n%s\n',FILE_NAME);
-	    fprintf(1,'Total number of times corrupt data found: %d\n', corruptCount);
     end
 end
 elapsedTime = toc;
