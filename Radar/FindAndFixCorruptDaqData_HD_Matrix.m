@@ -18,25 +18,10 @@ NUM_SAMPS_IN_HEADER = 3;
 %Enter the file name to be fixed here.  The new fixed file will
 % have "_fixed" appended to it. 
 
-%FILE_NAME = 'C:\Users\jwaite\Wavetronix LLC\Rail Division - Documents\HD\Data\Zara\hd_raw_data_07_22_2022_10_26_38.daq';
-%FILE_NAME = 'C:\Users\jwaite\Downloads\data\data\hd_raw_data_07_28_2022_15_02_17.daq';
-%FILE_NAME = 'C:\Data\MatrixRailRain\AtDeskSensorMoving1.daq';
-%FILE_NAME =    'C:\Users\jwaite\Wavetronix LLC\Rail Division - Documents\Matrix Rail\Data\MatrixRain\Miday_St_Rain5_20231001_113114.daq';
-%FILE_NAME = 'C:\Users\jwaite\Wavetronix LLC\Rail Division - Documents\Matrix Rail\Data\MatrixRain\2023-09-30\RCA_Blvd_NoRain2_20230930_083337.daq';
 %FILE_NAME =  'C:\Users\jwaite\Wavetronix LLC\Rail Division - Documents\Matrix Rail\Data\MatrixRain\2023-09-30\RCA_Blvd_NoRain1.daq';
 %FILE_NAME = 'C:\Users\jwaite\Wavetronix LLC\Rail Division - Documents\Matrix Rail\Data\MatrixRain\2023-09-30\RCA_Blvd_NoRain4_20230930_105120.daq';
-%FILE_NAME = 'C:\Data\MatrixRain\2023-10-13\MatrixRailCornerReflector_43feet_moving_20231013_113416.daq';
-%FILE_NAME = "E:\Data\Matrix\Matrix Rail Rain Data\2024_02_27_Wavetronix\Firehose1.daq";
-%FILE_NAME = "E:\Data\Matrix\Matrix Rail Rain Data\delete me\20231207SeattleTestSite1Test1.daq";
-%FILE_NAME = "E:\Data\Matrix\Matrix Rail Rain Data\delete me\Firehose1.daq";
-%FILE_NAME = "E:\Data\Matrix\Matrix Rail Rain Data\delete me\20231207SeattleTestSite1Test1.daq";
-%FILE_NAME = "E:\Data\Matrix\Matrix Rail Rain Data\delete me\Firehose1.daq";
-%FILE_NAME = "E:\Data\Matrix\Matrix Rail Rain Data\MatrixRainFloridaData\2023-10-09_Florida_Crossing\MatrixRain_Midway_RD_9\MatrixRainMidwayRD9_extended.daq";
-%FILE_NAME = "C:\Data\AntennaSwitchingTest\Antenna7Only.daq";
-%FILE_NAME = "C:\Data\AntennaSwitchingTest\RegularSwitching.daq";
-%FILE_NAME = "E:\RadarData\Matrix\Matrix Rail Rain Data\MatrixRainSeattleData\Seattle_12072023\Dataset 2\20231207SeattleTestSite2Test1_fixed_extended.daq";
-FILE_NAME = "E:\RadarData\Matrix\Matrix Rail Rain Data\MatrixRainSeattleData\Seattle_12072023\Dataset 2\20231207SeattleTestSite2Test1_fixed.daq";
-
+%FILE_NAME = "E:\RadarData\Matrix\Matrix Rail Rain Data\MatrixRainSeattleData\Seattle_12072023\Dataset 2\20231207SeattleTestSite2Test1_fixed.daq";
+FILE_NAME = "C:\Users\jwaite\Wavetronix LLC\Matrix Test and Raw Data - General\Matrix Rail Rain Data\2025-01-30_Wavetronix_Firehose\Firehose_3\Firehose_3.daq";
 
 [NUM_UP_CHIRP_SAMPLES, NUM_DOWN_CHIRP_SAMPLES, NUM_ANTENNAS] = findChirpParametersFromDaqFile(FILE_NAME);
 

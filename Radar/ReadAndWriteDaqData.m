@@ -1,4 +1,8 @@
-clear;  % ReadDAQData
+% ReadDAQData
+% This script can be used to read in a daq file, copy sections of it, and append the copied data to the beginning or end of the file.
+% This might be done to make a certain part of the file repeat to establish a background.
+
+clear;  
 SAMPLE_RATE = 1e6;
 NUM_HEADER_SAMPLES = 3;
 FFT_SIZE = 256;
@@ -7,17 +11,13 @@ VEL_EST_FFT_SIZE = 256;
 DIST_BETWEEN_ANTS = 34.32765e-6; %in miles
 HOURS_PER_PULSE	= 277.7778e-9;
 
-%FILE_NAME = 'C:\Data\2019-11-12 - Havana and Smith Denver\HDTrain1-57mph_right.daq';
-%FILE_NAME = 'C:\Data\2019-11-12 - Havana and Smith Denver\HD-NoTrain_pointing away.daq';
-%FILE_NAME = 'C:\Data\2019-11-12 - Havana and Smith Denver\Matrix1.daq';
-%FILE_NAME = "C:\Data\AntennaSwitchingTest\RegularSwitching2.daq";
-%FILE_NAME = "C:\Data\AntennaSwitchingTest\RegularSwitching_fingerOnTop.daq";
 % FILE_NAME = "C:\Data\MatrixBrreathingRate\Zubair_3m._2daq";
 %FILE_NAME = "C:\Data\AntennaSwitchingTest\AllAtnennas1.daq";
-FILE_NAME = "E:\RadarData\Matrix\Matrix Rail Rain Data\MatrixRainSeattleData\Seattle_12072023\Dataset 2\20231207SeattleTestSite2Test1_fixed.daq";
+FILE_NAME = "C:\Users\jwaite\Wavetronix LLC\Matrix Test and Raw Data - General\Matrix Rail Rain Data\2025-01-30_Wavetronix_Firehose\Firehose_3\Firehose_1.daq";
+
 
 [filepath,name,ext] = fileparts(FILE_NAME);
-write_file_name = strcat(filepath, '\', name, '_extended', ext);
+write_file_name = strcat(filepath, '\', name, '_extended_test', ext);
 
 [NUM_UP_CHIRP_SAMPLES, NUM_DOWN_CHIRP_SAMPLES, NUM_ANTENNAS] = findChirpParametersFromDaqFile(FILE_NAME);
 NUM_SAMPLES_PER_PERIOD = NUM_UP_CHIRP_SAMPLES + NUM_DOWN_CHIRP_SAMPLES + NUM_HEADER_SAMPLES;
